@@ -10,6 +10,7 @@
 #define PIXEL_PORT  PORTB  // Port of the pin the pixels are connected to
 #define PIXEL_DDR   DDRB   // Port of the pin the pixels are connected to
 #define PIXEL_BIT   4      // Bit of the pin the pixels are connected to
+//this translates to GPIO 12
 
 // These are the timing constraints taken mostly from the WS2812 datasheets 
 // These are chosen to be conservative and avoid problems rather than for maximum throughput 
@@ -34,51 +35,61 @@
 
 #define DELAY_CYCLES(n) ( ((n)>0) ? __builtin_avr_delay_cycles( n ) :  __builtin_avr_delay_cycles( 0 ) )  // Make sure we never have a delay less than zero
 
-int analogPin_2to5 = A5;
-int analogPin_6to9 = A4;
-int analogPin_10to13 = A3;
+int arduino_S0 = A0;	//pin containing state bit 0 received from hub arduino
+int arduino_S1 = A1;	//pin containing state bit 1 received from hub arduino
+int arduino_S2 = A2;	//pin containing state bit 2 received from hub arduino
+int arduino_S3 = A3;	//pin containing state bit 3 received from hub arduino
+int arduino_int = A4;	//pin for hub arduino sent interrupt
+
+int rpi_S0 = 4;			//pin containing state bit 0 recieved from raspberry pi
+int rpi_S1 = 5;			//pin containing state bit 1 recieved from raspberry pi
+int rpi_S2 = 6;			//pin containing state bit 2 recieved from raspberry pi
+int rpi_S3 = 7;			//pin containing state bit 3 recieved from raspberry pi
+int rpi_int = 3;		//pin for raspberry pi sent interrupt
+
 int nextState;
-int tempState;
-int Pin_S3 = 6;
-int Pin_S2 = 7;
-int Pin_S1 = 8;
-int Pin_S0 = 9;
+
 boolean first_time = true;
 
 // state number  State Code    Description
 //
-//      1           0000        Full brightness white light
-//      2           0001        Simulate slow sunrise
-//      3           0010        Open window rave parteh with strobez
-//      4           0011        Slow color change
-//      5           0100        Color Swipes
-//      6           0101        Theatre Lights
-//      7           0110        Tron style chasing circles
-//      8           0111        Back and forth snake
-//      9           1000        Aurora Borealis
-//      10          1001        Mood lighting
-//      11          1010        Rainbow Ring
-//      12          1011        Quick sunrise on
-//      13          1100        Quick sunset off
+//      12          0000        Quick sunrise on
+//      13          0001        Quick sunrise off
+//      2           0010        simulate sunrise
+//		3			0011		Open window rave parteh with strobez
+//      4           0100        Slow color change
+//      5           0101        Color Swipes
+//      6           0110        Theatre Lights
+//      7           0111        Tron style chasing circles
+//      8           1000        Back and forth snake
+//      9           1001        Aurora Borealis
+//      10          1010        Mood lighting
+//      11          1011        Rainbow Ring
 
 void setup() {
     
   ledsetup();
-  //initialize state bus variables as outputs
-  pinMode(Pin_S3, OUTPUT);
-  pinMode(Pin_S2, OUTPUT);
-  pinMode(Pin_S1, OUTPUT);
-  pinMode(Pin_S0, OUTPUT);
+  
+  //set state input pins as inputs
+  pinMode(arduino_S0, INPUT);
+  pinMode(arduino_S1, INPUT);
+  pinMode(arduino_S2, INPUT);
+  pinMode(arduino_S3, INPUT);
+  pinMode(rpi_S0, INPUT);
+  pinMode(rpi_S1, INPUT);
+  pinMode(rpi_S2, INPUT);
+  pinMode(rpi_S3, INPUT);
+  
 
   //set interrupt pins as inputs
-  pinMode(analogPin_2to5, INPUT);
-  pinMode(analogPin_6to9, INPUT);
-  pinMode(analogPin_10to13, INPUT);
+  pinMode(arduino_int, INPUT);
+  pinMode(rpi_int, INPUT);
+ 
 
-  //attach interrupt vectors to analog pins
-  attachPinChangeInterrupt(analogPin_2to5, stateCheck_2to5, RISING);
-  attachPinChangeInterrupt(analogPin_6to9, stateCheck_6to9, RISING);
-  attachPinChangeInterrupt(analogPin_10to13, stateCheck_10to13, RISING);
+  //attach interrupt vectors to interrupt pins
+  attachPinChangeInterrupt(arduino_int, arduino_state_check, RISING);
+  attachPinChangeInterrupt(rpi_int, rpi_state_check, RISING);
+  
 
   //set on-board LED pin as output, and turn off
   pinMode(13, OUTPUT);
@@ -88,7 +99,7 @@ void setup() {
   Serial.begin(9600);
 
   //set first state as white light
-  nextState = 1;
+  nextState = 12;
   
 }
 
@@ -101,48 +112,54 @@ void ledsetup() {
 }
 
 void loop() {
-  switch(nextState){
-    {
-    case 1:  //Full brightness white light (0000)
-      if(first_time){
-        digitalWrite(Pin_S3, LOW);
-        digitalWrite(Pin_S2, LOW);
-        digitalWrite(Pin_S1, LOW);
-        digitalWrite(Pin_S0, LOW);        
-        WhiteLight();
-      }
-      break;
+  switch(nextState)
+  {
+	case 0:    //quick sunrise on 
+	{
+             
+       fadeIn(0);
+       
+       if(nextState == 0)
+       {
+         first_time = false;
+         nextState = 12;
+       }
+         
+       break;
     }
       
-    case 2:   //simulate slow sunrise (0001)
+    case 1:    //quick sunset off 
+    {      
+       fadeOut(0);
+       
+       if(nextState == 1)
+       {
+         first_time = false;
+         nextState = 12;
+       }
+       
+       break; 
+    }
+      
+    case 2:   //simulate slow sunrise 
     {
-     digitalWrite(Pin_S3, LOW);
-     digitalWrite(Pin_S2, LOW);
-     digitalWrite(Pin_S1, LOW);
-     digitalWrite(Pin_S0, HIGH);
      
      fadeIn(100);     
      
      if(nextState == 2)
      {
        first_time = false;
-       nextState = 1;
+       nextState = 12;
      }
            
      break;
     }
      
-    case 5:    //various color swiping (0100)
+    case 5:    //various color swiping 
     {
     
     //ADD TRIAD GEN USEAGE HERE TO MAKE COLORS RANDOM AND INTERESTING
-      if(first_time)
-      {
-        digitalWrite(Pin_S3, LOW);
-        digitalWrite(Pin_S2, HIGH);
-        digitalWrite(Pin_S1, LOW);
-        digitalWrite(Pin_S0, LOW);
-      }
+
       first_time = false;
       if(nextState != 5)
         break;
@@ -178,15 +195,8 @@ void loop() {
       break;
     }
     
-    case 6:  //theatre lights (0101)
-    {      
-      if(first_time)
-      {
-        digitalWrite(Pin_S3, LOW);
-        digitalWrite(Pin_S2, HIGH);
-        digitalWrite(Pin_S1, LOW);
-        digitalWrite(Pin_S0, HIGH);
-      }  
+    case 6:  //theatre lights 
+    {        
       if(nextState != 6)
         break;  
      
@@ -212,56 +222,23 @@ void loop() {
       break;
     }
       
-     case 11:      //rainbow ring (1010)
+     case 11:      //rainbow ring 
      {
-       if(first_time)
-       {
-         digitalWrite(Pin_S3, HIGH);
-         digitalWrite(Pin_S2, LOW);
-         digitalWrite(Pin_S1, HIGH);
-         digitalWrite(Pin_S0, LOW);
-       }
        if(nextState != 11)
          break;
        rainbowCycle(1000 , 20 , 50 );       
        break; 
-     }       
-      
-     case 12:    //quick sunrise on (1011)
-     {
-       digitalWrite(Pin_S3, HIGH);
-       digitalWrite(Pin_S2, LOW);
-       digitalWrite(Pin_S1, HIGH);
-       digitalWrite(Pin_S0, HIGH); 
-      
-       fadeIn(0);
-       
-       if(nextState == 12)
-       {
-         first_time = false;
-         nextState = 1;
-       }
-         
-       break;
+     }
+
+	 case 12:  //Full brightness white light 
+	 {
+      if(first_time)
+	  {        
+        WhiteLight();
+      }
+      break;
      }
       
-     case 13:    //quick sunset off (1100)
-     {
-       digitalWrite(Pin_S3, HIGH);
-       digitalWrite(Pin_S2, HIGH);
-       digitalWrite(Pin_S1, LOW);
-       digitalWrite(Pin_S0, LOW);
-      
-       fadeOut(0);
-       
-       if(nextState == 13)
-       {
-         first_time = false;
-         nextState = 1;
-       }
-       
-       break; 
-     }
        
     /*
     // Some example procedures showing how to display to the pixels:
@@ -276,55 +253,43 @@ void loop() {
 }
 
 
-void stateCheck_2to5(){
+void arduino_state_check(){
   delay(10);
-  int result = analogRead(analogPin_2to5);
-  Serial.println(result);
-
-  if(result > 800 && result < 1024)
-  {
-    nextState = 2;    //sunrise simulation
-    first_time = true;
-  }
-  else if(result > 600 && result < 700)
-  {
-    nextState = 5;   //color swiping
-    first_time = true;
-  }
+  
+  boolean pin0; //value of arduino_S0
+  boolean pin1;	//value of arduino_S1
+  boolean pin2;	//value of arduino_S2
+  boolean pin3; //value of arduino_S3
+  
+  pin0 = digitalRead(arduino_S0);
+  pin1 = digitalRead(arduino_S1);
+  pin2 = digitalRead(arduino_S2);
+  pin3 = digitalRead(arduino_S3);
+  
+  nextState = state_to_base10(pin3, pin2, pin1, pin0);
+  
 }
 
-void stateCheck_6to9(){
+void rpi_state_check(){
   delay(10);
-  int result = analogRead(analogPin_6to9);
-  Serial.println(result);
-
-  if(result > 800 && result < 1024)
-  {
-    nextState = 6;      //theater lights
-    first_time = true;
-  }
-  else if(result > 600 && result < 700)
-  {
-    nextState = 11;    //rainbow ring
-    first_time = true;
-  }
+  
+  boolean pin0; //value of rpi_S0
+  boolean pin1;	//value of rpi_S1
+  boolean pin2;	//value of rpi_S2
+  boolean pin3; //value of rpi_S3
+  
+  pin0 = digitalRead(rpi_S0);
+  pin1 = digitalRead(rpi_S1);
+  pin2 = digitalRead(rpi_S2);
+  pin3 = digitalRead(rpi_S3);
+  
+  nextState = state_to_base10(pin3, pin2, pin1, pin0);
+    
 }
 
-void stateCheck_10to13(){
-  delay(10);
-  int result = analogRead(analogPin_10to13);
-  Serial.println(result);
-
-  if(result > 800 && result < 1024)
-  {
-    nextState = 12;    //lights on 
-    first_time = true;
-  }
-  else if(result > 600 && result < 700)
-  {
-    nextState = 13;    //lights off
-    first_time = true;
-  }
+int state_to_base10(int bit3, int bit2, int bit1, int bit0)
+{
+	return (bit3*2*2*2 + bit2*2*2 + bit1*2 + bit0);
 }
 
 void WhiteLight(){
