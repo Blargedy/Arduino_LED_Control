@@ -4,6 +4,7 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
+/*
 #define mqtt_server "192.168.3.2"
 #define mqtt_user "iotdevice"
 #define mqtt_password "ransalcharu"
@@ -16,6 +17,7 @@ const char* password = "ransalcharu";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+*/
 
 void callback(char* topic, byte* payload, unsigned int length)
 {
