@@ -41,16 +41,6 @@
 #define UNO_S3 A3 	  //pin containing state bit 3 received from ESP8266
 #define ESP_INT A4 	  //pin for ESP8266 sent interrupt
 
-//int rpi_S0 = 4;			//pin containing state bit 0 recieved from raspberry pi
-//int rpi_S1 = 5;			//pin containing state bit 1 recieved from raspberry pi
-//int rpi_S2 = 6;			//pin containing state bit 2 recieved from raspberry pi
-//int rpi_S3 = 7;			//pin containing state bit 3 recieved from raspberry pi
-//int rpi_int = 3;		//pin for raspberry pi sent interrupt
-
-int nextState;
-
-boolean first_time = true;
-
 // state number  State Code    Description
 //
 //      12          0000        Quick sunrise on
@@ -99,153 +89,14 @@ void ledsetup() {
 }
 
 void loop() {
-  switch(nextState)
-  {
-	case 0:    //quick sunrise on 
-	{             
-       fadeIn(0);       
-       if(nextState == 0)
-       {
-         first_time = false;
-         nextState = 12;
-       }         
-       break;
-    }      
-    case 1:    //quick sunset off 
-    {      
-       fadeOut(0);
-       
-       if(nextState == 1)
-       {
-         first_time = false;
-         nextState = 12;
-       }       
-       break; 
-    }      
-    case 2:   //simulate slow sunrise 
-    {     
-     fadeIn(100);     
-     if(nextState == 2)
-     {
-       first_time = false;
-       nextState = 12;
-     }           
-     break;
-    }     
-    case 5:    //various color swiping 
-    {    
-    //ADD TRIAD GEN USEAGE HERE TO MAKE COLORS RANDOM AND INTERESTING
-      first_time = false;
-      if(nextState != 5)
-        break;
-      colorWipe(255, 0, 0, 10); // Red
-      if(nextState != 5)
-        break;
-      colorWipe(0, 255, 0, 10); // Green
-      if(nextState != 5)
-        break;
-      colorWipe(0, 0, 255, 10); // Blue
-      if(nextState != 5)
-        break;
-      colorWipe(255, 255, 0, 10);
-      if(nextState != 5)
-        break;
-      colorWipe(0, 255, 255, 10);
-      if(nextState != 5)
-        break;
-      colorWipe(255, 0, 255, 10);
-      if(nextState != 5)
-        break;
-      strobez(255, 255, 255, 50, 30);
-      if(nextState != 5)
-        break;
-      strobez(255, 0, 255, 50, 40);
-      if(nextState != 5)
-        break;
-      strobez(255, 255, 255, 50, 50);
-      if(nextState != 5)
-        break;
-      strobez(255, 0, 255, 50, 60);            
-      break;
-    }    
-    case 6:  //theatre lights 
-    {        
-      if(nextState != 6)
-        break;  
-     
-      //declare arrays to hold 3 rgb colors
-      unsigned char rgb1[3], rgb2[3], rgb3[3];   
-        
-      //generate random seed
-      //randomSeed(analogRead(0));
-      
-      //generate random hue value and use triad gen to generate harmonic triad      
-      double theater_hue = random(0, 36001) / 100;
-      Serial.println(theater_hue);
-      TriadGen(theater_hue, rgb1, rgb2, rgb3);      
-         
-      // Send a theater pixel chase in the three generated colors
-      theaterChase(rgb1[0], rgb1[1], rgb1[2], 20); // first color      
-      if(nextState != 6)
-        break;        
-      theaterChase(rgb2[0], rgb2[1], rgb2[2], 20); // second color     
-      if(nextState != 6)
-        break;         
-      theaterChase(rgb3[0], rgb3[1], rgb3[2], 20); // third color      
-      break;
-    }
-      
-     case 11:      //rainbow ring 
-     {
-       if(nextState != 11)
-         break;
-       rainbowCycle(1000 , 20 , 50 );       
-       break; 
-     }
 
-	 case 12:  //Full brightness white light 
-	 {
-      if(first_time)
-	  {        
-        WhiteLight();
-      }
-      nextState = 11;
-      break;
-     }
-      
-       
-    /*
     // Some example procedures showing how to display to the pixels:
       colorWipe(255, 0, 0, 10); // Red
       colorWipe(0, 255, 0, 10); // Green
       colorWipe(0, 0, 255, 10); // Blue
       rainbowCycle(1000 , 20 , 50 );
       detonate( 255 , 255 , 255 , 1000);
-      first_time = true;
-    */    
-  }   
-}
-
-
-void arduino_state_check(){
-  delay(10);
-  
-  boolean pin0; //value of arduino_S0
-  boolean pin1;	//value of arduino_S1
-  boolean pin2;	//value of arduino_S2
-  boolean pin3; //value of arduino_S3
-  
-  pin0 = digitalRead(UNO_S0);
-  pin1 = digitalRead(UNO_S1);
-  pin2 = digitalRead(UNO_S2);
-  pin3 = digitalRead(UNO_S3);
-  
-  nextState = state_to_base10(pin3, pin2, pin1, pin0);  
-}
-
-int state_to_base10(int bit3, int bit2, int bit1, int bit0)
-{
-	return (bit3*2*2*2 + bit2*2*2 + bit1*2 + bit0);
+      first_time = true;     
 }
 
 void WhiteLight(){

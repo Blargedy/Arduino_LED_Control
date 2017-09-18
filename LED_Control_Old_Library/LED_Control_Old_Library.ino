@@ -1,4 +1,3 @@
-
 #include <PinChangeInt.h>
 #include <PinChangeIntConfig.h>
 
@@ -56,7 +55,7 @@ boolean first_time = true;
 //      12          0000        Quick sunrise on
 //      13          0001        Quick sunrise off
 //      2           0010        simulate sunrise
-//		3			0011		Open window rave parteh with strobez
+//		  3			      0011		    Open window rave parteh with strobez
 //      4           0100        Slow color change
 //      5           0101        Color Swipes
 //      6           0110        Theatre Lights
